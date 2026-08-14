@@ -1,0 +1,50 @@
+<!doctype html><html lang="tr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#12324a"><link rel="manifest" href="manifest.json"><title>SEYREK EMLAK</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f5f7;color:#17212b;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{background:#12324a;color:#fff;padding:20px 16px 16px;position:sticky;top:0;z-index:5}h1{margin:0;font-size:23px}.sub{opacity:.8;font-size:12px}
+main{max-width:720px;margin:auto;padding:14px 14px 90px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.card{background:#fff;border:0;border-radius:18px;padding:18px 14px;min-height:110px;text-align:left;box-shadow:0 3px 12px #0001}.emoji{font-size:28px}.card b{display:block;margin-top:8px}
+.search{width:100%;padding:13px;border:1px solid #d8dee4;border-radius:13px;background:#fff;margin-bottom:10px}
+.top{display:flex;align-items:center;gap:9px;margin-bottom:10px}.back{border:0;background:#fff;border-radius:10px;padding:9px 12px}
+.list{display:grid;gap:11px}.item{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 9px #0001}.thumb{height:150px;width:100%;object-fit:cover;background:#e9edf0}.itembody{padding:13px}.price{font-weight:800;color:#12324a;font-size:17px;margin-top:7px}.meta{font-size:13px;color:#687681;margin-top:4px}
+.actions{display:flex;gap:8px;margin-top:11px}.actions button,.primary{border:0;border-radius:11px;padding:11px;font-weight:700}.actions button{flex:1}.wa{background:#dff7e7}.edit{background:#e7eef5}.del{background:#fbe1e1}
+.primary{width:100%;background:#12324a;color:#fff}.secondary{background:#e7eef5;color:#12324a}
+input,select,textarea{width:100%;padding:12px;border:1px solid #d8dee4;border-radius:11px;margin:5px 0 10px;background:#fff;font:inherit}label{font-size:13px;font-weight:700}
+.photo{width:100%;height:210px;object-fit:cover;border-radius:14px;background:#e9edf0}.empty{text-align:center;padding:35px 10px;color:#71808c}
+.detail{background:#fff;border-radius:17px;padding:14px}.detail h2{margin:5px 0}.detail p{line-height:1.5}.nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;padding:10px 14px;z-index:6}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:8px}.filters select{margin:0}
+</style></head><body>
+<header><h1>SEYREK EMLAK</h1><div class="sub">Satılık • Kiralık • Kat Karşılığı • Arsa</div></header>
+<main id="app"></main><div class="nav"><button class="primary" onclick="showAdd()">＋ Yeni İlan Ekle</button></div>
+<script>
+const KEY="seyrek_emlak_v2";let data=JSON.parse(localStorage.getItem(KEY)||"[]");let current="all";
+const cats=[["satilik","🏠","Satılık Daireler"],["kiralik","🔑","Kiralık Daireler"],["kat","🏗️","Kat Karşılığı Yerler"],["arsa","📐","Satılık Arsalar"]];
+const app=document.getElementById("app");const $=id=>document.getElementById(id);
+function save(){localStorage.setItem(KEY,JSON.stringify(data))}
+function home(){app.innerHTML=`<div class="grid">${cats.map(c=>`<button class="card" onclick="showList('${c[0]}')"><span class="emoji">${c[1]}</span><b>${c[2]}</b></button>`).join("")}</div><br><button class="primary" onclick="showList('all')">🔎 Tüm İlanları Gör</button>`}
+function showList(cat){current=cat;app.innerHTML=`<div class="top"><button class="back" onclick="home()">‹ Geri</button><h2>${cat==="all"?"Tüm İlanlar":cats.find(c=>c[0]===cat)[2]}</h2></div>
+<input class="search" id="q" placeholder="İlan, mahalle, ada/parsel ara..." oninput="renderList()"><div class="filters"><select id="sort" onchange="renderList()"><option value="">Sırala</option><option value="low">Fiyat: düşük → yüksek</option><option value="high">Fiyat: yüksek → düşük</option><option value="area">m²: büyük → küçük</option></select><select id="kind" onchange="renderList()"><option value="all">Tüm kategoriler</option>${cats.map(c=>`<option value="${c[0]}">${c[2]}</option>`).join("")}</select></div><div id="rows" class="list"></div>`;renderList()}
+function renderList(){let q=($("q")?.value||"").toLowerCase(),kind=$("kind")?.value||"all",sort=$("sort")?.value||"";let rows=data.filter(x=>(current==="all"||x.type===current)&&(kind==="all"||x.type===kind)&&(`${x.title} ${x.location} ${x.parcel} ${x.note}`.toLowerCase().includes(q)));if(sort==="area")rows.sort((a,b)=>(+b.area||0)-(+a.area||0));if(sort==="low")rows.sort((a,b)=>num(a.price)-num(b.price));if(sort==="high")rows.sort((a,b)=>num(b.price)-num(a.price));$("rows").innerHTML=rows.length?rows.map(x=>`<div class="item"><img class="thumb" src="${x.photo||placeholder()}" onclick="detail('${x.id}')"><div class="itembody"><h3>${esc(x.title)}</h3><div class="meta">${esc(x.location||"")} • ${x.area?esc(x.area)+" m²":""}</div><div class="price">${esc(x.price||"Fiyat sorunuz")}</div><div class="actions"><button class="secondary" onclick="detail('${x.id}')">Detay</button><button class="wa" onclick="wa('${x.id}')">WhatsApp</button><button class="edit" onclick="showAdd('${x.id}')">Düzenle</button></div></div></div>`).join(""):`<div class="empty">İlan bulunamadı.</div>`}
+function showAdd(id){let x=id?data.find(a=>a.id===id):{};app.innerHTML=`<div class="top"><button class="back" onclick="showList('${current}')">‹ Geri</button><h2>${id?"İlanı Düzenle":"Yeni İlan"}</h2></div><form onsubmit="saveAd(event,'${id||""}')">
+<label>Kategori</label><select id="type">${cats.map(c=>`<option value="${c[0]}" ${x.type===c[0]?"selected":""}>${c[2]}</option>`).join("")}</select>
+<label>İlan başlığı</label><input id="title" required value="${esc(x.title||"")}" placeholder="Örn. Sarıgazi'de 3+1 Daire">
+<label>Fiyat</label><input id="price" value="${esc(x.price||"")}" placeholder="7.500.000 TL">
+<label>m²</label><input id="area" type="number" value="${esc(x.area||"")}" placeholder="120">
+<label>Konum</label><input id="location" value="${esc(x.location||"")}" placeholder="Mahalle / İlçe">
+<label>Ada / Parsel</label><input id="parcel" value="${esc(x.parcel||"")}" placeholder="702 / 1">
+<label>Telefon / WhatsApp (isteğe bağlı)</label><input id="phone" value="${esc(x.phone||"")}" placeholder="905360365574">
+<label>İlan fotoğrafı</label><input id="photoInput" type="file" accept="image/*" onchange="preview(this)"><img id="preview" class="photo" src="${x.photo||placeholder()}"><label>İlan videosu</label><input id="videoInput" type="file" accept="video/*" onchange="previewVideo(this)"><video id="videoPreview" class="photo" controls playsinline style="${x.video?"":"display:none"}" src="${x.video||""}"></video>
+<label>Detay</label><textarea id="note" rows="5" placeholder="Oda sayısı, kat, emsal, imar, malik bilgisi...">${esc(x.note||"")}</textarea>
+<button class="primary" type="submit">💾 Kaydet</button></form>`}
+function preview(inp){if(inp.files[0]){let r=new FileReader();r.onload=e=>{$("preview").src=e.target.result};r.readAsDataURL(inp.files[0])}}
+function previewVideo(inp){if(inp.files[0]){let r=new FileReader();r.onload=e=>{$("videoPreview").src=e.target.result;$("videoPreview").style.display="block"};r.readAsDataURL(inp.files[0])}}
+function saveAd(e,id){e.preventDefault();let old=id?data.find(x=>x.id===id):null;let photo=$("preview").src;let video=$("videoPreview").src;let obj={id:id||Date.now().toString(),type:$("type").value,title:$("title").value,price:$("price").value,area:$("area").value,location:$("location").value,parcel:$("parcel").value,phone:$("phone").value,note:$("note").value,photo:photo.startsWith("data:")?photo:(old?.photo||""),video:video&&video!=="undefined"?video:(old?.video||"")};if(id)data=data.map(x=>x.id===id?obj:x);else data.push(obj);save();showList(obj.type)}
+function detail(id){let x=data.find(a=>a.id===id);app.innerHTML=`<div class="top"><button class="back" onclick="showList('${current}')">‹ Geri</button><h2>İlan Detayı</h2></div><div class="detail"><img class="photo" src="${x.photo||placeholder()}">${x.video?`<video class="photo" controls playsinline src="${x.video}"></video>`:""}<h2>${esc(x.title)}</h2><div class="price">${esc(x.price||"Fiyat sorunuz")}</div><p><b>Konum:</b> ${esc(x.location||"-")}<br><b>m²:</b> ${esc(x.area||"-")}<br><b>Ada/Parsel:</b> ${esc(x.parcel||"-")}</p><p>${esc(x.note||"")}</p><div class="actions"><button class="wa" onclick="wa('${x.id}')">WhatsApp</button><button class="edit" onclick="showAdd('${x.id}')">Düzenle</button></div></div>`}
+function wa(id){let x=data.find(a=>a.id===id),txt=`${x.title}\nFiyat: ${x.price||"-"}\n${x.area||"-"} m²\nKonum: ${x.location||"-"}\nAda/Parsel: ${x.parcel||"-"}\n${x.note||""}`;let p=(x.phone||"").replace(/\D/g,"");location.href=p?`https://wa.me/${p}?text=${encodeURIComponent(txt)}`:`https://wa.me/?text=${encodeURIComponent(txt)}`}
+function num(v){return +(String(v).replace(/\D/g,""))||0}function removeAd(id){if(confirm("Bu ilan silinsin mi?")){data=data.filter(x=>x.id!==id);save();showList(current)}}
+function esc(s){return String(s||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function placeholder(){return "data:image/svg+xml;charset=UTF-8,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='600' height='300'><rect width='100%' height='100%' fill='#e9edf0'/><text x='50%' y='50%' text-anchor='middle' dominant-baseline='middle' fill='#71808c' font-size='24'>Fotoğraf yok</text></svg>")}
+home();
+</script></body></html>
